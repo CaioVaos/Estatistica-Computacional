@@ -7,22 +7,21 @@ rpois.rej = function(n,lambda, m = 1000){
   M = m
   k = (M+1)*max(dpois(0:M,lambda))
   
-  x = rep(NA,n)
+  x = NULL
   
-  cont = 0
+  j = 0
   
-  while(cont < n){
+  while(j < n){
     
-    # proposta uniforme
     y = sample(0:M,1,replace = TRUE)
     
     u = runif(1)
     px = dpois(y,lambda)
-    gy = 1/(M+1)
+    qy = 1/(M+1)
     
-    if(u < px/(k*gy)){
-      cont = cont+1
-      x[cont] = y
+    if(u < px/(k*qy)){
+      j = j+1
+      x[j] = y
     }
     
   }
@@ -44,22 +43,22 @@ rbinom.rej = function(n,size,prob){
   
   k = (size+1)*max(dbinom(0:size,size,prob))
   
-  x = rep(NA,n)
+  x = NULL
   
-  cont = 0
+  j = 0
   
-  while(cont < n){
+  while(j < n){
     
     # proposta uniforme
     y = sample(0:size,1,replace = TRUE)
     
     u = runif(1)
     px = dbinom(y,size,prob)
-    gy = 1/(size+1)
+    qy = 1/(size+1)
     
-    if(u < px/(k*gy)){
-      cont = cont+1
-      x[cont] = y
+    if(u < px/(k*qy)){
+      j = j+1
+      x[j] = y
     }
     
   }
