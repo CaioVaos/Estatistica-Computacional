@@ -121,8 +121,8 @@ jackknife_cov = function(x, y){
   
   # Intervalo de confiança de 95%
   IC = c(
-    theta_jack - qt(0.975, n - 1) * se_jack,
-    theta_jack + qt(0.975, n - 1) * se_jack
+    theta_jack - qnorm(0.975) * se_jack,
+    theta_jack + qnorm(0.975) * se_jack
   )
   
   list(
@@ -136,8 +136,8 @@ jackknife_cov = function(x, y){
 
 ## 2 ----
 
-x = sort(sample(c(1:10), 10, replace = T))
-y = sort(sample(c(1:10), 10, replace = T))
+x = sort(sample(c(1:10), 6, replace = T))
+y = sort(sample(c(1:10), 6, replace = T))
 
 jackknife_cov(x, y)$se_jack
 
