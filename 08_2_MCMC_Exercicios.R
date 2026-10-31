@@ -131,7 +131,6 @@ for (i in 1:3) {
 par(mfrow = c(1, 1))
 
 # 3 ----
-
 gibbs_exp_soma = function(M, lambda, c, x0) {
   n = length(lambda)
   X = matrix(NA, nrow = M, ncol = n)
@@ -141,98 +140,104 @@ gibbs_exp_soma = function(M, lambda, c, x0) {
   for (t in 2:M) {
     x.atual = X[t-1, ]
     
-    for(i in 1:n){
-      i = sample(1:n, 1)
+    for (i in 1:n) {
       soma_outros = sum(x.atual[-i])
-
-      #############################################################
+      y = rexp(1, rate = lambda[i])
       
-      X[t, ] = x.atual
+      if (soma_outros > c) {
+        x.atual[i] = y
+      } else {
+        x.atual[i] = (c - soma_outros) + y
+      }
     }
+    
+    X[t, ] = x.atual
   }
   X
 }
 
-# 4 ----
-# Y_i ~ N(mu, 1/tau)
-#
-# mu ~ N(mu0, 1/tau0)
-# tau ~ Gama(a, b)
-#
-# mu | tau, y ~ N( (tau0*mu0 + n*tau*ybar) / (tau0 + n*tau),  1/(tau0 + n*tau) )
-# tau | mu, y ~ Gama( a + n/2,  b + 0.5 * sum((y - mu)^2) )   (taxa b)
+q3 = gibbs_exp_soma(
+  10000,
+  c(1,2,3),
+  3,
+  c(4,4,4)
+)
 
-## 4.1 ----
-# Dados simulados (valores "verdadeiros": mu = 5, sigma = 2 -> tau = 0.25)
- 
+par(mfrow = c(3, 1))
+ts.plot(q3[1001:10000, 1], ylab = expression(x[1]))
+ts.plot(q3[1001:10000, 2], ylab = expression(x[2]))
+ts.plot(q3[1001:10000, 3], ylab = expression(x[3]))
+par(mfrow = c(1, 1))
+
+par(mfrow = c(3, 1))
+acf(q3p[, 1])
+acf(q3p[, 2])
+acf(q3p[, 3])
+par(mfrow = c(1, 1))
+
+par(mfrow = c(3, 1))
+hist(q3[1001:10000, 1], freq = F, main = "X1")
+hist(q3[1001:10000, 2], freq = F, main = "X2")
+hist(q3[1001:10000, 3], freq = F, main = "X3")
+par(mfrow = c(1, 1))
+
+
+# 4 ----
+
 n = 100
 mu_real = 5
 tau_real = 1/4
 y = rnorm(n, mu_real, sqrt(1/tau_real))
- 
-ybar = mean(y)
- 
-# Hiperparametros das prioris (pouco informativas)
+
 mu0 = 0
 tau0 = 0.01
 a = 0.01
 b = 0.01
- 
-## 4.2 ----
-# Gibbs
- 
-M = 10000
-burn = 1000
- 
-mu = numeric(M)
-tau = numeric(M)
- 
-# Valores iniciais
-mu[1] = ybar
-tau[1] = 1 / var(y)
- 
-for (t in 2:M) {
-  # mu | tau, y
-  prec = tau0 + n * tau[t-1]
-  media = (tau0 * mu0 + n * tau[t-1] * ybar) / prec
-  mu[t] = rnorm(1, media, sqrt(1 / prec))
+
+gibbs_normal = function(M, y, mu0, tau0, a, b) {
+  n = length(y)
+  ybar = mean(y)
   
-  # tau | mu, y
-  tau[t] = rgamma(1, shape = a + n/2, rate = b + 0.5 * sum((y - mu[t])^2))
+  mu = NULL
+  tau = NULL
+  mu[1] = ybar
+  tau[1] = 1 / var(y)
+  
+  for (t in 2:M) {
+    # mu | tau, y
+    prec = tau0 + n * tau[t-1]
+    media = (tau0 * mu0 + n * tau[t-1] * ybar) / prec
+    mu[t] = rnorm(1, media, sqrt(1 / prec))
+    
+    # tau | mu, y   (usa o mu que acabou de ser sorteado)
+    tau[t] = rgamma(1, shape = a + n/2, rate = b + 0.5 * sum((y - mu[t])^2))
+  }
+  list(
+    mu = mu,
+    tau = tau
+  )
 }
- 
-## 4.3 ----
-# Diagnosticos e resultados
- 
+
+q4 = gibbs_normal(10000, y, mu0, tau0, a, b)
+
+mu_post = q4$mu[1001:10000]
+tau_post = q4$tau[1001:10000]
+
 par(mfrow = c(2, 1))
-ts.plot(mu[(burn+1):M],  xlab = "iteracoes", ylab = expression(mu))
-ts.plot(tau[(burn+1):M], xlab = "iteracoes", ylab = expression(tau))
+ts.plot(mu_post, ylab = expression(mu))
+ts.plot(tau_post, ylab = expression(tau))
 par(mfrow = c(1, 1))
- 
-par(mfrow = c(1, 2))
-acf(mu[(burn+1):M],  main = expression(mu))
-acf(tau[(burn+1):M], main = expression(tau))
+
+par(mfrow = c(2, 1))
+acf(mu_post)
+acf(tau_post)
 par(mfrow = c(1, 1))
- 
-par(mfrow = c(1, 2))
-hist(mu[(burn+1):M],  freq = F, main = expression(mu),  xlab = expression(mu))
+
+par(mfrow = c(2, 1))
+hist(mu_post, freq = F)
 abline(v = mu_real, col = "red", lwd = 2)
-hist(tau[(burn+1):M], freq = F, main = expression(tau), xlab = expression(tau))
+hist(tau_post, freq = F)
 abline(v = tau_real, col = "red", lwd = 2)
 par(mfrow = c(1, 1))
- 
-# Resumos a posteriori: media e intervalo de credibilidade de 95%
-mu_post  = mu[(burn+1):M]
-tau_post = tau[(burn+1):M]
- 
-rbind(mu  = c(media = mean(mu_post),  quantile(mu_post,  c(0.025, 0.975))),
-      tau = c(media = mean(tau_post), quantile(tau_post, c(0.025, 0.975))))
- 
-# Em termos da variancia sigma^2 = 1/tau
-sigma2_post = 1 / tau_post
-c(media = mean(sigma2_post), quantile(sigma2_post, c(0.025, 0.975)))
- 
-# Distribuicao conjunta
-plot(mu_post, tau_post, pch = 16, cex = 0.3, xlab = expression(mu),
-     ylab = expression(tau))
- 
+
+plot(mu_post, tau_post, pch = 16, cex = 0.3, xlab = expression(mu), ylab = expression(tau))
