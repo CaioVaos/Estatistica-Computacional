@@ -41,15 +41,20 @@ MCMC_MH_gama = function(M, tau2, x0 = 1, alfa = 2.5, beta = 1) {
   )
 }
 
-q1 <- MCMC_MH_gama(10000, 1)
+q1 <- MCMC_MH_gama(20000, 1)
 
 ts.plot(q1$x[(1001):10000])
 acf(q1$x[(1001):10000])
 
-hist(x[seq(1001, 10000, by = 50)], freq = F)
+hist(q1$x[seq(1001, 10000, by = 50)], freq = F)
 curve(dens_gama(x, 2.5, 1), add = T)
 
-q1$cont/10000
+q1$cont/20000
+
+library(coda)
+cadeia1 <- mcmc(q1$x)
+geweke.diag(cadeia1)
+effectiveSize(cadeia1)/20000
 
 ## 1.2 ----
 
@@ -62,6 +67,21 @@ q1_0.1$cont/10000
 q1_1$cont/10000
 q1_10$cont/10000
 q1_100$cont/10000
+
+cadeia_q1_0.1 <- mcmc(q1_0.1$x)
+cadeia_q1_1 <- mcmc(q1_1$x)
+cadeia_q1_10 <- mcmc(q1_10$x)
+cadeia_q1_100 <- mcmc(q1_100$x)
+
+geweke.diag(cadeia_q1_0.1)
+geweke.diag(cadeia_q1_1)
+geweke.diag(cadeia_q1_10)
+geweke.diag(cadeia_q1_100)
+
+effectiveSize(cadeia_q1_0.1)/10000
+effectiveSize(cadeia_q1_1)/10000
+effectiveSize(cadeia_q1_10)/10000
+effectiveSize(cadeia_q1_100)/10000
 
 # 2 ----
 
@@ -106,17 +126,13 @@ q2_0.5$cont/100000
 q2_2$cont/100000
 q2_10$cont/100000
 
-par(mfrow = c(3, 1))
 ts.plot(q2_0.5$x[10001:100000])
 ts.plot(q2_2$x[10001:100000])
 ts.plot(q2_10$x[10001:100000])
-par(mfrow = c(1, 1))
 
-par(mfrow = c(3, 1))
 acf(q2_0.5$x[10001:100000])
 acf(q2_2$x[10001:100000])
 acf(q2_10$x[10001:100000])
-par(mfrow = c(1, 1))
 
 hist(q2_0.5$x[10001:100000], freq = F)
 hist(q2_2$x[10001:100000], freq = F)
@@ -148,31 +164,19 @@ gibbs_exp_soma <- function(M, lambda, c, x0){
   x
 }
 
-q3 = gibbs_exp_soma(
-  10000,
-  c(1,2,3),
-  3,
-  c(4,4,4)
-)
+q3 = gibbs_exp_soma(10000, c(1,2,3), 3, c(4,4,4))
 
-par(mfrow = c(3, 1))
 ts.plot(q3[1001:10000, 1])
 ts.plot(q3[1001:10000, 2])
 ts.plot(q3[1001:10000, 3])
-par(mfrow = c(1, 1))
 
-par(mfrow = c(3, 1))
 acf(q3p[, 1])
 acf(q3p[, 2])
 acf(q3p[, 3])
-par(mfrow = c(1, 1))
 
-par(mfrow = c(3, 1))
 hist(q3[1001:10000, 1], freq = F)
 hist(q3[1001:10000, 2], freq = F)
 hist(q3[1001:10000, 3], freq = F)
-par(mfrow = c(1, 1))
-
 
 # 4 ----
 
@@ -213,7 +217,6 @@ ts.plot(q4$tau[1001:10000])
 
 acf(q4$mu[1001:10000])
 acf(q4$tau[1001:10000])
-
 
 hist(q4$mu[1001:10000], freq = F)
 abline(v = mu_real, col = "red")
